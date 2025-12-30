@@ -2,6 +2,8 @@
 
 `ask` is a terminal-first assistant that turns plain-English requests into macOS zsh commands. It uses LM Studio as the local LLM backend, so you can describe what you want and review the suggested command (or direct answer) before running anything on your machine.
 
+`ask` exists to bridge the gap between natural language and the terminal, without auto-running commands or shipping data to the cloud.
+
 ## Installation
 
 Prerequisites:

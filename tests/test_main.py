@@ -60,7 +60,7 @@ def test_call_llm_handles_non_json(monkeypatch):
 
     result = ask_main.call_llm(_llm_config(), [])
 
-    assert result["type"] == "question"
+    assert result["type"] == "answer"
     assert "plain text" in result["message"]
     assert result["follow_up"] is False
 

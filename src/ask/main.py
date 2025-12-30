@@ -147,8 +147,8 @@ def call_llm(cfg: LLMConfig, messages: List[Dict[str, str]]) -> Dict[str, Any]:
     except Exception as e:
         # Fall back: show raw content for debugging
         return {
-            "type": "question",
-            "message": f"LLM returned non-JSON. Raw:\n{content}\n\nError: {e}",
+            "type": "answer",
+            "message": f"{content}\n\n[Non-JSON response: {e}]",
             "command": "",
             "follow_up": False,
         }
@@ -239,6 +239,7 @@ def main():
         msg = (result.get("message") or "").strip()
         cmd = (result.get("command") or "").strip()
         follow_up = bool(result.get("follow_up"))
+        follow_up_allowed = follow_up and args.run
 
         if msg:
             console.print(pretty_message(msg))
@@ -256,7 +257,7 @@ def main():
 
         if rtype == "answer":
             messages.append({"role": "assistant", "content": json.dumps(result)})
-            if follow_up:
+            if follow_up_allowed:
                 continue
             break
 
@@ -295,13 +296,13 @@ def main():
                         ),
                     }
                 )
-                if follow_up:
+                if follow_up_allowed:
                     continue
                 break
 
             # Still record assistant output for continuity
             messages.append({"role": "assistant", "content": json.dumps(result)})
-            if follow_up:
+            if follow_up_allowed and do_run:
                 continue
             break
 

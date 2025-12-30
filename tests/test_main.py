@@ -65,6 +65,20 @@ def test_call_llm_handles_non_json(monkeypatch):
     assert result["follow_up"] is False
 
 
+def test_call_llm_handles_scalar_json(monkeypatch):
+    """If the LLM returns a valid JSON scalar (e.g., just a number), treat it as an answer."""
+
+    def fake_post(*args, **kwargs):
+        payload = {"choices": [{"message": {"content": "13.2542"}}]}
+        return DummyResponse(payload)
+
+    monkeypatch.setattr(ask_main.requests, "post", fake_post)
+
+    result = ask_main.call_llm(_llm_config(), [])
+
+    assert result == {"type": "answer", "message": "13.2542", "command": "", "follow_up": False}
+
+
 def test_session_round_trip(tmp_path, monkeypatch):
     """save_session + load_session should preserve the conversation log."""
 

@@ -42,6 +42,7 @@ CRITICAL RULE:
 - Do NOT invent shell commands just to look helpful.
 - If a command would only print information that you can directly explain, use type="answer" instead.
 - If the user could solve the request by reading your explanation without running anything, use type="answer".
+- Output plain text only. Do not use Markdown formatting, bullet points, or tables unless the user explicitly asks for them; prefer sentences suitable for a terminal.
 
 SAFETY:
 - Prefer safe commands. Avoid destructive actions.
@@ -140,10 +141,6 @@ def call_llm(cfg: LLMConfig, messages: List[Dict[str, str]]) -> Dict[str, Any]:
     content = data["choices"][0]["message"]["content"]
     try:
         parsed = json.loads(content)
-        if not isinstance(parsed, dict):
-            raise ValueError("LLM did not return a JSON object")
-        parsed.setdefault("follow_up", False)
-        return parsed
     except Exception as e:
         # Fall back: show raw content for debugging
         return {
@@ -152,6 +149,20 @@ def call_llm(cfg: LLMConfig, messages: List[Dict[str, str]]) -> Dict[str, Any]:
             "command": "",
             "follow_up": False,
         }
+
+    if not isinstance(parsed, dict):
+        return {
+            "type": "answer",
+            "message": str(parsed),
+            "command": "",
+            "follow_up": False,
+        }
+
+    parsed.setdefault("follow_up", False)
+    parsed.setdefault("message", "")
+    parsed.setdefault("command", "")
+    parsed.setdefault("type", "answer")
+    return parsed
 
 def pretty_command(cmd: str) -> Panel:
     t = Text(cmd)

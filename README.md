@@ -84,6 +84,13 @@ If you omit the query, Ask drops you into an interactive prompt with history and
 
 By using `ask` you acknowledge that you remain responsible for the commands you execute on your machine.
 
+## Tests
+
+```bash
+pip install pytest
+pytest
+```
+
 ## Licence
 
 Licensed under the MIT License. See [LICENSE](LICENSE) for details.

@@ -93,7 +93,7 @@ pytest
 
 ## Licence
 
-Licensed under the MIT License. See [LICENSE](LICENSE) for details.
+Licensed under the MIT License. See [LICENSE](LICENSE.md) for details.
 
 ## TODO
 

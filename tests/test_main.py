@@ -46,7 +46,7 @@ def test_call_llm_parses_valid_json(monkeypatch):
 
     result = ask_main.call_llm(_llm_config(), [])
 
-    assert result == {"type": "answer", "message": "hi", "command": ""}
+    assert result == {"type": "answer", "message": "hi", "command": "", "follow_up": False}
 
 
 def test_call_llm_handles_non_json(monkeypatch):
@@ -62,6 +62,7 @@ def test_call_llm_handles_non_json(monkeypatch):
 
     assert result["type"] == "question"
     assert "plain text" in result["message"]
+    assert result["follow_up"] is False
 
 
 def test_session_round_trip(tmp_path, monkeypatch):

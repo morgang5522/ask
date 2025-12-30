@@ -49,21 +49,23 @@ SAFETY:
 - You will not answer NSFW questions.
 
 FOLLOW-UPS:
-- Ask a follow-up question (type="question") only when you cannot complete the request without missing essential info.
-- If you can provide a useful partial answer without clarifying, do so with type="answer" rather than asking a question.
+- Ask a follow-up question (type="question") when you cannot complete the request without missing essential info, or when you need to provide additional guidance after the command runs.
+- If the user has asked you to explain or interpret the output of a command, set "follow_up": true.
+- Verbs such as tell, explain, interpret, analyze, summarize, etc. indicate a follow-up is needed.
 
 OUTPUT FORMAT:
 Return JSON only, with exactly this schema:
 {
   "type": "question" | "command" | "answer",
   "message": "<string>",
-  "command": "<string or empty>"
+  "command": "<string or empty>",
+  "follow_up": "<true or false>"
 }
 
 RESPONSE RULES:
-- If more info is needed, use type="question" and put only the question in message.
-- Use type="command" only when the user genuinely needs a shell command. Put the command in "command" and a short explanation (1–3 sentences) in "message".
-- If the user only needs an explanation and no shell command, use type="answer" and leave "command" empty.
+- If more info is needed, use type="question" and put only the question in message. Set "follow_up": true.
+- Use type="command" only when the user genuinely needs a shell command. Put the command in "command" and a short explanation (1–3 sentences) in "message". Set "follow_up": true only when you expect to comment on the command results afterward; otherwise false.
+- If the user only needs an explanation and no shell command, use type="answer" and leave "command" empty. Set "follow_up": true only when further conversation is needed; otherwise false.
 - Never wrap JSON in markdown fences. Return JSON only.
 
 CALIBRATION EXAMPLES (follow these patterns exactly):
@@ -140,10 +142,16 @@ def call_llm(cfg: LLMConfig, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         parsed = json.loads(content)
         if not isinstance(parsed, dict):
             raise ValueError("LLM did not return a JSON object")
+        parsed.setdefault("follow_up", False)
         return parsed
     except Exception as e:
         # Fall back: show raw content for debugging
-        return {"type": "question", "message": f"LLM returned non-JSON. Raw:\n{content}\n\nError: {e}", "command": ""}
+        return {
+            "type": "question",
+            "message": f"LLM returned non-JSON. Raw:\n{content}\n\nError: {e}",
+            "command": "",
+            "follow_up": False,
+        }
 
 def pretty_command(cmd: str) -> Panel:
     t = Text(cmd)
@@ -155,11 +163,14 @@ def pretty_message(msg: str) -> Panel:
 def pretty_user(msg: str) -> Panel:
     return Panel(Text(msg), title="You", border_style="magenta")
 
-def run_shell_command(cmd: str) -> int:
+def run_shell_command(cmd: str) -> subprocess.CompletedProcess:
     # Run using user's shell for normal zsh compatibility, but safely.
     # We avoid shell=True; instead invoke /bin/zsh -lc "<cmd>"
-    p = subprocess.run(["/bin/zsh", "-lc", cmd])
-    return p.returncode
+    return subprocess.run(
+        ["/bin/zsh", "-lc", cmd],
+        text=True,
+        capture_output=True,
+    )
 
 def interactive_followups(session: PromptSession, prompt_text: str) -> str:
     # PathCompleter enables TAB completion for files/folders
@@ -227,6 +238,7 @@ def main():
         rtype = (result.get("type") or "").strip().lower()
         msg = (result.get("message") or "").strip()
         cmd = (result.get("command") or "").strip()
+        follow_up = bool(result.get("follow_up"))
 
         if msg:
             console.print(pretty_message(msg))
@@ -244,6 +256,8 @@ def main():
 
         if rtype == "answer":
             messages.append({"role": "assistant", "content": json.dumps(result)})
+            if follow_up:
+                continue
             break
 
         if rtype == "command":
@@ -264,15 +278,31 @@ def main():
 
             if do_run:
                 console.print("[bold]Running…[/bold]")
-                rc = run_shell_command(cmd)
-                console.print(f"[bold]Exit code:[/bold] {rc}")
+                completed = run_shell_command(cmd)
+                console.print(f"[bold]Exit code:[/bold] {completed.returncode}")
+                if completed.stdout:
+                    console.print(Panel(Text(completed.stdout.rstrip()), title="stdout", border_style="green"))
+                if completed.stderr:
+                    console.print(Panel(Text(completed.stderr.rstrip()), title="stderr", border_style="red"))
                 # Tell the model what happened for next time
                 messages.append({"role": "assistant", "content": json.dumps(result)})
-                messages.append({"role": "user", "content": f"The command returned exit code {rc}."})
-            else:
-                # Still record assistant output for continuity
-                messages.append({"role": "assistant", "content": json.dumps(result)})
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            f"The command returned exit code {completed.returncode}.\n"
+                            f"STDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}"
+                        ),
+                    }
+                )
+                if follow_up:
+                    continue
+                break
 
+            # Still record assistant output for continuity
+            messages.append({"role": "assistant", "content": json.dumps(result)})
+            if follow_up:
+                continue
             break
 
         # Unknown response type

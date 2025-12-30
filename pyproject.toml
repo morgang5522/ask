@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ask-cli"
+version = "0.1.0"
+description = "Plain-English to shell commands via LM Studio"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31.0",
+    "prompt_toolkit>=3.0.43",
+    "platformdirs>=4.2.0",
+    "rich>=13.7.0",
+]
+
+[project.scripts]
+ask = "ask.main:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

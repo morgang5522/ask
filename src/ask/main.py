@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import subprocess
 from dataclasses import dataclass
 from typing import Any, Dict, List
@@ -139,13 +140,43 @@ def call_llm(cfg: LLMConfig, messages: List[Dict[str, str]]) -> Dict[str, Any]:
     r.raise_for_status()
     data = r.json()
     content = data["choices"][0]["message"]["content"]
+    parsed = None
+    error_msg = ""
+    
+    def try_parse(s: str) -> Any:
+        # strict=False allows control characters (like raw newlines) in strings
+        return json.loads(s, strict=False)
+
+    # 1. Try direct parse
     try:
-        parsed = json.loads(content)
+        parsed = try_parse(content)
     except Exception as e:
+        error_msg = str(e)
+        
+    # 2. Try to find JSON in markdown fences
+    if parsed is None:
+        match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", content)
+        if match:
+            try:
+                parsed = try_parse(match.group(1))
+            except Exception as e:
+                error_msg = str(e)
+
+    # 3. Try to find the first '{' and last '}'
+    if parsed is None:
+        start = content.find('{')
+        end = content.rfind('}')
+        if start != -1 and end != -1:
+            try:
+                parsed = try_parse(content[start:end+1])
+            except Exception as e:
+                error_msg = str(e)
+
+    if parsed is None:
         # Fall back: show raw content for debugging
         return {
             "type": "answer",
-            "message": f"{content}\n\n[Non-JSON response: {e}]",
+            "message": f"{content}\n\n[Non-JSON response: {error_msg}]",
             "command": "",
             "follow_up": False,
         }

@@ -18,7 +18,7 @@ console = Console()
 
 DEFAULT_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:1234")
 DEFAULT_ENDPOINT = os.environ.get("LMSTUDIO_ENDPOINT", "/v1/chat/completions")
-DEFAULT_MODEL = os.environ.get("LMSTUDIO_MODEL", "qwen/qwen3-vl-8b")
+DEFAULT_MODEL = os.environ.get("LMSTUDIO_MODEL", "google/gemma-3-12b")
 
 SYSTEM_PROMPT = """You are a helpful assistant that can either:
 (A) answer normally in text, OR

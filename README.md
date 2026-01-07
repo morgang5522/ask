@@ -43,14 +43,14 @@ After installation, ensure `~/.local/bin` (or the path pipx reports) is on your 
 ## LM Studio setup
 
 1. Launch LM Studio and start an API server (menu: Run → OpenAI-Compatible Server).
-2. Select a chat model (the defaults expect `qwen/qwen3-vl-8b`, but you can choose any compatible model).
+2. Select a chat model (the defaults expect `google/gemma-3-12b`, but you can choose any compatible model).
 3. Note the host/port of the server. By default, Ask points to `http://localhost:1234` with endpoint `/v1/chat/completions`.
 
 You can override the connection details via either CLI flags or environment variables:
 
 - `LMSTUDIO_BASE_URL` (default `http://localhost:1234`)
 - `LMSTUDIO_ENDPOINT` (default `/v1/chat/completions`)
-- `LMSTUDIO_MODEL` (default `qwen/qwen3-vl-8b`)
+- `LMSTUDIO_MODEL` (default `google/gemma-3-12b`)
 
 Example:
 

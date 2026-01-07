@@ -30,6 +30,9 @@ pipx install git+https://github.com/morgang5522/ask.git
 
 # or, from a local clone:
 pipx install .
+
+# to update in one command
+pipx upgrade ask-cli
 ```
 
 Without pipx:
